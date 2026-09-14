@@ -1467,6 +1467,18 @@ img {
   border: 1px solid #D6D8DB;
 }
 
+.status-pending-verification {
+  background: #FEF3C7;
+  color: #92400E;
+  border: 1px solid #FCD34D;
+}
+
+.status-rejected {
+  background: #FEE2E2;
+  color: #991B1B;
+  border: 1px solid #FECACA;
+}
+
 /* Action Buttons */
 .btn-admin-action {
   padding: 5px 10px;
@@ -2953,4 +2965,35 @@ textarea.form-control {
   cursor: pointer;
   padding: 4px;
   text-decoration: underline;
+}
+
+.utr-verification-box {
+  background: #F8FAFC;
+  border: 1.5px dashed #CBD5E1;
+  border-radius: var(--radius-md);
+  padding: 14px;
+  margin-top: 14px;
+  text-align: center;
+}
+
+.btn-admin-verify {
+  background: #D1E7DD;
+  color: #0F5132;
+  border: 1px solid #BADBCC;
+}
+
+.btn-admin-verify:hover {
+  background: #198754;
+  color: #FFF;
+}
+
+.btn-admin-reject {
+  background: #F8D7DA;
+  color: #842029;
+  border: 1px solid #F5C2C7;
+}
+
+.btn-admin-reject:hover {
+  background: #DC3545;
+  color: #FFF;
 }

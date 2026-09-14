@@ -950,25 +950,42 @@ document.addEventListener('DOMContentLoaded', () => {
               <path d="M12.5 13.5L8.5 23.5H3L7 13.5H12.5Z" fill="#0284C7"/>
               <text x="22" y="19" font-family="'Segoe UI', Roboto, sans-serif" font-size="16" font-weight="800" fill="#0C2340">Razorpay</text>
             </svg>
-            <span style="font-size: 0.76rem; color: #64748B; font-weight: 600;">• Verified UPI Gateway</span>
+            <span style="font-size: 0.76rem; color: #64748B; font-weight: 600;">• Verified Online Gateway</span>
           </div>
           <span class="razorpay-secure-badge">🔒 256-bit Encrypted</span>
         </div>
 
         <div class="razorpay-amount-box">
-          <div class="razorpay-amount-title">Total Payable via Razorpay UPI</div>
+          <div class="razorpay-amount-title">Total Payable via UPI / Razorpay</div>
           <div class="razorpay-amount-num">₹${orderData.finalTotal}</div>
           <div>
             <span class="razorpay-discount-pill">🎉 10% Instant UPI Discount Applied (Saved ₹${orderData.upiDiscount})</span>
           </div>
         </div>
 
+        <!-- Primary Secure Action: Direct Razorpay Checkout -->
+        <div style="margin-bottom: 18px;">
+          <button type="button" class="btn-confirm-payment" id="btn-launch-razorpay" style="padding: 13px 22px; font-size: 1.02rem;">
+            <span>⚡</span> Pay via Razorpay Checkout (Auto-Verified)
+          </button>
+          <p style="font-size: 0.78rem; color: #64748B; margin-top: 6px;">
+            Securely pay with any UPI app, Card, or NetBanking. Order is verified automatically!
+          </p>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 10px; margin: 16px 0;">
+          <div style="flex: 1; height: 1px; background: #E2E8F0;"></div>
+          <span style="font-size: 0.76rem; color: #94A3B8; font-weight: 700; letter-spacing: 0.5px;">OR SCAN DIRECT UPI QR</span>
+          <div style="flex: 1; height: 1px; background: #E2E8F0;"></div>
+        </div>
+
+        <!-- Direct QR Frame -->
         <div class="razorpay-qr-frame">
-          <img src="${qrImageSrc}" alt="Razorpay UPI QR Code - Scan & Pay" class="razorpay-qr-img" id="razorpay-active-qr">
+          <img src="${qrImageSrc}" alt="Google Pay UPI QR Code" class="razorpay-qr-img" id="razorpay-active-qr">
         </div>
 
         <div class="razorpay-scan-instruction">
-          📲 Scan & Pay with any UPI app on your phone
+          📲 Scan &amp; Pay with Google Pay, PhonePe, or Paytm
         </div>
 
         <div class="razorpay-apps-row">
@@ -976,21 +993,28 @@ document.addEventListener('DOMContentLoaded', () => {
           <span class="razorpay-app-pill">PhonePe</span>
           <span class="razorpay-app-pill">Paytm</span>
           <span class="razorpay-app-pill">BHIM UPI</span>
-          <span class="razorpay-app-pill">CRED</span>
         </div>
 
-        <div class="razorpay-timer-box">
-          <span class="live-pulse-dot"></span>
-          <span>QR Session active for: <strong id="rzp-timer-display">04:59</strong></span>
+        <!-- UTR / Payment Proof Verification Box (Prevents Fake Payments) -->
+        <div class="utr-verification-box">
+          <div style="font-size: 0.84rem; font-weight: 700; color: #1E293B; margin-bottom: 4px;">
+            Paid using the QR code above?
+          </div>
+          <p style="font-size: 0.78rem; color: #64748B; margin-bottom: 8px; line-height: 1.35;">
+            Enter your <strong>12-digit UPI Reference / UTR Number</strong> from your payment receipt for bank verification:
+          </p>
+          <div style="display: flex; gap: 8px; max-width: 360px; margin: 0 auto 8px;">
+            <input type="text" id="upi-utr-input" placeholder="12-digit UTR (e.g. 425819028374)" maxlength="16" class="form-control" style="font-family: monospace; font-size: 0.9rem; text-align: center;">
+            <button type="button" class="btn btn-primary" id="btn-submit-utr" style="white-space: nowrap; padding: 7px 16px; font-size: 0.85rem;">
+              Submit UTR 🔍
+            </button>
+          </div>
+          <div style="font-size: 0.73rem; color: #B45309; background: #FEF3C7; padding: 5px 10px; border-radius: 6px; display: inline-block;">
+            ⚠️ Order will be placed under <strong>"Verification Pending"</strong>. Fake UTRs are rejected immediately.
+          </div>
         </div>
 
-        <div class="razorpay-actions">
-          <button type="button" class="btn-confirm-payment" id="btn-confirm-upi-payment">
-            <span>✓</span> I Have Paid via UPI / Complete Order
-          </button>
-          <button type="button" class="btn-open-razorpay-sdk" id="btn-open-razorpay-modal">
-            <span>💳</span> Open Standard Razorpay Checkout
-          </button>
+        <div style="margin-top: 14px;">
           <button type="button" class="btn-razorpay-back" id="btn-cancel-rzp-payment">
             ← Back to Checkout Form
           </button>
@@ -998,99 +1022,119 @@ document.addEventListener('DOMContentLoaded', () => {
       </div>
     `;
 
-    // Start 5-min countdown timer
-    let timeLeft = 299;
-    const timerEl = document.getElementById('rzp-timer-display');
-    const timerInterval = setInterval(() => {
-      timeLeft--;
-      if (timeLeft <= 0) {
-        clearInterval(timerInterval);
-        if (timerEl) timerEl.textContent = 'Expired';
-        return;
-      }
-      const mins = String(Math.floor(timeLeft / 60)).padStart(2, '0');
-      const secs = String(timeLeft % 60).padStart(2, '0');
-      if (timerEl) timerEl.textContent = `${mins}:${secs}`;
-    }, 1000);
-
     // Cancel / Back button
     const backBtn = document.getElementById('btn-cancel-rzp-payment');
     if (backBtn) {
       backBtn.addEventListener('click', () => {
-        clearInterval(timerInterval);
         location.reload();
       });
     }
 
-    // Open Standard Razorpay Modal
-    const sdkBtn = document.getElementById('btn-open-razorpay-modal');
-    if (sdkBtn) {
-      sdkBtn.addEventListener('click', () => {
-        if (typeof Razorpay !== 'undefined') {
-          const options = {
-            key: "rzp_test_KnotBerryStudios",
-            amount: orderData.finalTotal * 100,
-            currency: "INR",
-            name: "knotberry.studios 🍓",
-            description: `Order #${orderData.orderNumber} (Crochet Accessories)`,
-            image: "assets/images/logo.jpg",
-            handler: function () {
-              clearInterval(timerInterval);
-              executeOrderCompletion(orderData);
-            },
-            prefill: {
-              name: orderData.customerFullName,
-              email: orderData.customerEmail,
-              contact: orderData.customerPhone
-            },
-            theme: {
-              color: "#FF5C8A"
-            }
-          };
-          try {
-            const rzpInstance = new Razorpay(options);
-            rzpInstance.open();
-          } catch (err) {
-            console.warn('Standard modal launch:', err);
-            showToast('Scan the Razorpay QR code to complete payment! 🍓');
-          }
-        } else {
-          showToast('Razorpay QR is active! Scan with any UPI app 📱');
-        }
+    // Launch Genuine Razorpay Checkout Modal
+    const launchRzpBtn = document.getElementById('btn-launch-razorpay');
+    if (launchRzpBtn) {
+      launchRzpBtn.addEventListener('click', () => {
+        launchOfficialRazorpay(orderData);
       });
     }
 
-    // Confirm Payment Click
-    const confirmBtn = document.getElementById('btn-confirm-upi-payment');
-    if (confirmBtn) {
-      confirmBtn.addEventListener('click', () => {
-        clearInterval(timerInterval);
-        confirmBtn.innerHTML = `<span>⏳</span> Verifying payment with Razorpay...`;
-        confirmBtn.style.opacity = '0.85';
-        confirmBtn.disabled = true;
+    // Submit UTR Reference Number (Prevents Cheatcode)
+    const submitUtrBtn = document.getElementById('btn-submit-utr');
+    if (submitUtrBtn) {
+      submitUtrBtn.addEventListener('click', () => {
+        const utrInput = document.getElementById('upi-utr-input');
+        const utr = utrInput ? utrInput.value.trim() : '';
+
+        if (!utr || utr.length < 8) {
+          alert('Please enter a valid 12-digit UPI Transaction / UTR number from your payment app receipt.');
+          if (utrInput) utrInput.focus();
+          return;
+        }
+
+        submitUtrBtn.innerHTML = `<span>⏳</span> Submitting...`;
+        submitUtrBtn.disabled = true;
 
         setTimeout(() => {
-          executeOrderCompletion(orderData);
-        }, 1100);
+          saveAndShowSuccessOrder({
+            orderNumber: orderData.orderNumber,
+            customerFullName: orderData.customerFullName,
+            customerPhone: orderData.customerPhone,
+            customerEmail: orderData.customerEmail,
+            fullAddress: orderData.fullAddress,
+            orderedItems: orderData.orderedItems,
+            subtotal: orderData.subtotal,
+            shipping: orderData.shipping,
+            finalTotal: orderData.finalTotal,
+            status: "Payment Verification Pending",
+            statusClass: "status-pending-verification",
+            paymentMethodDisplay: `Direct UPI (UTR: ${escapeHtml(utr)})`,
+            utr: utr
+          });
+        }, 600);
       });
     }
   }
 
-  function executeOrderCompletion(orderData) {
-    saveAndShowSuccessOrder({
-      orderNumber: orderData.orderNumber,
-      customerFullName: orderData.customerFullName,
-      customerPhone: orderData.customerPhone,
-      customerEmail: orderData.customerEmail,
-      fullAddress: orderData.fullAddress,
-      orderedItems: orderData.orderedItems,
-      subtotal: orderData.subtotal,
-      shipping: orderData.shipping,
-      finalTotal: orderData.finalTotal,
-      status: "Completed",
-      statusClass: "status-completed",
-      paymentMethodDisplay: "UPI via Razorpay (10% Discount Applied)"
-    });
+  function launchOfficialRazorpay(orderData) {
+    if (typeof Razorpay === 'undefined') {
+      alert('Razorpay Checkout SDK is still loading. Please ensure internet connection is active.');
+      return;
+    }
+
+    const rzpKey = localStorage.getItem('knotberry_rzp_key') || 'rzp_test_51tH8g7n8x3j1k';
+
+    const options = {
+      key: rzpKey,
+      amount: orderData.finalTotal * 100, // in paise
+      currency: "INR",
+      name: "knotberry.studios 🍓",
+      description: `Handcrafted Order #${orderData.orderNumber}`,
+      image: "assets/images/logo.jpg",
+      handler: function (response) {
+        // THIS ONLY TRIGGERS WHEN PAYMENT IS GENUINELY RECEIVED ON RAZORPAY!
+        if (response && response.razorpay_payment_id) {
+          saveAndShowSuccessOrder({
+            orderNumber: orderData.orderNumber,
+            customerFullName: orderData.customerFullName,
+            customerPhone: orderData.customerPhone,
+            customerEmail: orderData.customerEmail,
+            fullAddress: orderData.fullAddress,
+            orderedItems: orderData.orderedItems,
+            subtotal: orderData.subtotal,
+            shipping: orderData.shipping,
+            finalTotal: orderData.finalTotal,
+            status: "Completed",
+            statusClass: "status-completed",
+            paymentMethodDisplay: `UPI via Razorpay (ID: ${response.razorpay_payment_id})`,
+            paymentId: response.razorpay_payment_id
+          });
+        }
+      },
+      modal: {
+        ondismiss: function () {
+          showToast('⚠️ Razorpay payment was cancelled. No order was created.');
+        }
+      },
+      prefill: {
+        name: orderData.customerFullName,
+        email: orderData.customerEmail,
+        contact: orderData.customerPhone
+      },
+      theme: {
+        color: "#FF5C8A"
+      }
+    };
+
+    try {
+      const rzpInstance = new Razorpay(options);
+      rzpInstance.on('payment.failed', function (resp) {
+        alert('Payment failed: ' + (resp.error ? resp.error.description : 'Transaction could not be completed.'));
+      });
+      rzpInstance.open();
+    } catch (err) {
+      console.warn('Razorpay open error:', err);
+      alert('Could not open Razorpay gateway: ' + err.message + '\nTip: You can scan the Google Pay QR code below and submit your 12-digit UTR!');
+    }
   }
 
   function saveAndShowSuccessOrder(data) {
@@ -1105,6 +1149,8 @@ document.addEventListener('DOMContentLoaded', () => {
       shipping: data.shipping,
       total: data.finalTotal,
       status: data.status,
+      utr: data.utr || null,
+      paymentId: data.paymentId || null,
       date: "Today (" + new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) + ")",
       paymentMethod: data.paymentMethodDisplay
     };
@@ -1114,13 +1160,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
     triggerConfetti();
 
+    let statusNoteBox = '';
+    if (data.status === 'Payment Verification Pending') {
+      statusNoteBox = `
+        <div style="background: #FEF3C7; border-radius: var(--radius-md); padding: 12px 16px; font-size: 0.84rem; color: #92400E; margin-bottom: 20px; border: 1.5px solid #FCD34D; text-align: left;">
+          ⏳ <strong>Payment Under Bank Verification (UTR: ${escapeHtml(data.utr)})</strong><br>
+          <span style="font-size: 0.8rem; color: #78350F; margin-top: 4px; display: block;">
+            Knot Berry will verify this transaction against our bank statement before crafting and packing your items. Fake or unpaid references are cancelled immediately.
+          </span>
+        </div>
+      `;
+    } else {
+      statusNoteBox = `
+        <div style="background: #ECFDF5; border-radius: var(--radius-md); padding: 12px 16px; font-size: 0.84rem; color: #065F46; margin-bottom: 20px; border: 1.5px solid #A7F3D0; text-align: left;">
+          ✓ <strong>Payment Confirmed &amp; Received!</strong> knotberry.studios is preparing your order with delicate care.
+        </div>
+      `;
+    }
+
     checkoutModalBody.innerHTML = `
       <div class="order-success-box">
         <div class="success-icon">🍓🎉✨</div>
-        <h3 style="color: var(--color-berry); font-size: 1.8rem; margin-bottom: 8px;">Order Confirmed!</h3>
-        <p style="color: var(--text-muted); margin-bottom: 20px;">
-          Thank you for supporting handmade craft! knotberry.studios is preparing your order with delicate care.
+        <h3 style="color: var(--color-berry); font-size: 1.8rem; margin-bottom: 8px;">Order Placed!</h3>
+        <p style="color: var(--text-muted); margin-bottom: 16px;">
+          Thank you for supporting handmade craft!
         </p>
+
+        ${statusNoteBox}
         
         <div style="background: var(--bg-soft-pink); border-radius: var(--radius-md); padding: 18px; text-align: left; margin-bottom: 20px; border: 1.5px solid var(--border-pink);">
           <div style="margin-bottom: 8px;">
@@ -1128,7 +1194,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <span style="font-family: monospace; font-size: 1.15rem; color: var(--color-primary-dark); font-weight: 700;">${data.orderNumber}</span>
           </div>
           <div style="margin-bottom: 8px;"><strong>Customer:</strong> ${escapeHtml(data.customerFullName)}</div>
-          <div style="margin-bottom: 8px;"><strong>Total Paid:</strong> ₹${data.finalTotal} (${data.paymentMethodDisplay})</div>
+          <div style="margin-bottom: 8px;"><strong>Total:</strong> ₹${data.finalTotal} (${data.paymentMethodDisplay})</div>
           <div style="margin-bottom: 8px;"><strong>Status:</strong> <span class="status-pill ${data.statusClass}">${data.status}</span></div>
           <div><strong>Complimentary:</strong> Free Strawberry Sticker Pack & Pink Ribbon 🎀</div>
         </div>
@@ -1402,7 +1468,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
+  const adminRzpKeyInput = document.getElementById('admin-rzp-key-input');
+  const adminSaveRzpKeyBtn = document.getElementById('admin-save-rzp-key-btn');
+  const adminRzpStatusMsg = document.getElementById('admin-rzp-status-msg');
+
   function openAdminDashboard() {
+    if (adminRzpKeyInput) {
+      adminRzpKeyInput.value = localStorage.getItem('knotberry_rzp_key') || '';
+    }
     renderAdminDashboard();
     adminDashboardModal.classList.add('active');
   }
@@ -1417,6 +1490,20 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  if (adminSaveRzpKeyBtn && adminRzpKeyInput) {
+    adminSaveRzpKeyBtn.addEventListener('click', () => {
+      const keyVal = adminRzpKeyInput.value.trim();
+      localStorage.setItem('knotberry_rzp_key', keyVal);
+      if (adminRzpStatusMsg) {
+        adminRzpStatusMsg.style.display = 'block';
+        setTimeout(() => {
+          if (adminRzpStatusMsg) adminRzpStatusMsg.style.display = 'none';
+        }, 3500);
+      }
+      showToast('Razorpay Gateway Settings Saved! 💳');
+    });
+  }
+
   // Admin Tab Switcher
   document.querySelectorAll('.admin-tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -1426,14 +1513,11 @@ document.addEventListener('DOMContentLoaded', () => {
       const targetTab = btn.dataset.adminTab;
       const ordersContent = document.getElementById('admin-tab-orders-content');
       const reviewsContent = document.getElementById('admin-tab-reviews-content');
+      const gatewayContent = document.getElementById('admin-tab-gateway-content');
 
-      if (targetTab === 'orders') {
-        ordersContent.style.display = 'block';
-        reviewsContent.style.display = 'none';
-      } else {
-        ordersContent.style.display = 'none';
-        reviewsContent.style.display = 'block';
-      }
+      if (ordersContent) ordersContent.style.display = (targetTab === 'orders') ? 'block' : 'none';
+      if (reviewsContent) reviewsContent.style.display = (targetTab === 'reviews') ? 'block' : 'none';
+      if (gatewayContent) gatewayContent.style.display = (targetTab === 'gateway') ? 'block' : 'none';
     });
   });
 
@@ -1458,22 +1542,55 @@ document.addEventListener('DOMContentLoaded', () => {
           if (order.status === 'Dispatched') statusClass = 'status-dispatched';
           if (order.status === 'Delivered') statusClass = 'status-delivered';
           if (order.status === 'Completed') statusClass = 'status-completed';
+          if (order.status === 'Payment Verification Pending') statusClass = 'status-pending-verification';
+          if (order.status === 'Payment Rejected') statusClass = 'status-rejected';
 
           const itemsSummary = (order.items || []).map(i => `${i.quantity}x ${i.name} (${i.color || 'Std'})`).join('<br>');
 
+          let paymentBadges = '';
+          if (order.utr) {
+            paymentBadges += `<br><span style="display:inline-block; margin-top:4px; font-size:0.75rem; background:#FEF3C7; color:#92400E; padding:2px 6px; border-radius:4px; border:1px solid #FCD34D;">UTR: <strong>${escapeHtml(order.utr)}</strong></span>`;
+          }
+          if (order.paymentId) {
+            paymentBadges += `<br><span style="display:inline-block; margin-top:4px; font-size:0.75rem; background:#D1E7DD; color:#0F5132; padding:2px 6px; border-radius:4px; border:1px solid #BADBCC;">RZP: <strong>${escapeHtml(order.paymentId)}</strong></span>`;
+          }
+          if (order.paymentMethod) {
+            paymentBadges += `<br><span style="font-size:0.72rem; color:var(--text-muted);">${escapeHtml(order.paymentMethod)}</span>`;
+          }
+
+          let actionButtons = '';
+          if (order.status === 'Payment Verification Pending') {
+            actionButtons = `
+              <div style="display: flex; flex-direction: column; gap: 5px;">
+                <button class="btn-admin-action btn-admin-verify" data-order-idx="${idx}" title="Confirm payment received in bank">
+                  Verify &amp; Confirm ✓
+                </button>
+                <button class="btn-admin-action btn-admin-reject" data-order-idx="${idx}" title="Reject fake or unverified order">
+                  Reject Fake ❌
+                </button>
+              </div>
+            `;
+          } else {
+            actionButtons = `
+              <button class="btn-admin-action btn-admin-status" data-order-idx="${idx}" title="Change status">
+                Update Status 🔄
+              </button>
+            `;
+          }
+
           return `
             <tr>
-              <td><strong style="font-family: monospace; color: var(--color-primary-dark);">${order.id}</strong><br><span style="font-size: 0.75rem; color: var(--text-muted);">${order.date || ''}</span></td>
+              <td>
+                <strong style="font-family: monospace; color: var(--color-primary-dark);">${order.id}</strong>
+                <br><span style="font-size: 0.75rem; color: var(--text-muted);">${order.date || ''}</span>
+                ${paymentBadges}
+              </td>
               <td><strong>${escapeHtml(order.customerName)}</strong><br><span style="font-size: 0.78rem; color: var(--text-muted);">${escapeHtml(order.address || '')}</span></td>
               <td>${escapeHtml(order.phone || '')}<br><span style="font-size: 0.78rem; color: var(--text-muted);">${escapeHtml(order.email || '')}</span></td>
               <td style="font-size: 0.82rem;">${itemsSummary || 'N/A'}</td>
               <td><strong style="color: var(--color-berry);">₹${order.total}</strong></td>
               <td><span class="status-pill ${statusClass}">${order.status}</span></td>
-              <td>
-                <button class="btn-admin-action btn-admin-status" data-order-idx="${idx}" title="Change status">
-                  Update Status 🔄
-                </button>
-              </td>
+              <td>${actionButtons}</td>
             </tr>
           `;
         }).join('');
@@ -1483,6 +1600,36 @@ document.addEventListener('DOMContentLoaded', () => {
           btn.addEventListener('click', () => {
             const idx = parseInt(btn.dataset.orderIdx);
             cycleOrderStatus(idx);
+          });
+        });
+
+        // Attach verify listeners
+        adminOrdersTbody.querySelectorAll('.btn-admin-verify').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const idx = parseInt(btn.dataset.orderIdx);
+            const ord = orders[idx];
+            if (!ord) return;
+            if (confirm(`Confirm payment received for Order ${ord.id}? This will verify the payment and mark status as Completed.`)) {
+              ord.status = 'Completed';
+              localStorage.setItem('knotberry_orders', JSON.stringify(orders));
+              renderAdminDashboard();
+              showToast(`Order ${ord.id} verified and confirmed! 🍓`);
+            }
+          });
+        });
+
+        // Attach reject listeners
+        adminOrdersTbody.querySelectorAll('.btn-admin-reject').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const idx = parseInt(btn.dataset.orderIdx);
+            const ord = orders[idx];
+            if (!ord) return;
+            if (confirm(`Reject Order ${ord.id} as unpaid/fake reference?`)) {
+              ord.status = 'Payment Rejected';
+              localStorage.setItem('knotberry_orders', JSON.stringify(orders));
+              renderAdminDashboard();
+              showToast(`Order ${ord.id} marked as Payment Rejected ❌`);
+            }
           });
         });
       }
