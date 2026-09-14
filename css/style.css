@@ -1455,6 +1455,12 @@ img {
   border: 1px solid #C3E6CB;
 }
 
+.status-completed {
+  background: #D1E7DD;
+  color: #0F5132;
+  border: 1px solid #BADBCC;
+}
+
 .status-pending {
   background: #E2E3E5;
   color: #383D41;
@@ -2537,4 +2543,414 @@ textarea.form-control {
   .admin-stats-bar {
     grid-template-columns: 1fr;
   }
+}
+
+/* ==========================================================================
+   CHECKOUT PAYMENT CARDS & DYNAMIC PRICING
+   ========================================================================== */
+.payment-options-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.payment-option-card {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 16px;
+  background: #FFF;
+  border: 2px solid #E8B4C4;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  box-shadow: var(--shadow-sm);
+  user-select: none;
+}
+
+.payment-option-card:hover {
+  border-color: var(--color-primary);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(255, 92, 138, 0.15);
+}
+
+.payment-option-card.active {
+  border-color: #D85B82;
+  background: #FFF7FA;
+  box-shadow: 0 4px 14px rgba(216, 91, 130, 0.2);
+}
+
+.payment-option-badge {
+  position: absolute;
+  top: -10px;
+  right: 14px;
+  background: linear-gradient(135deg, #FF3366, #FF6584);
+  color: #FFF;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  box-shadow: 0 2px 8px rgba(255, 51, 102, 0.35);
+  animation: pulseGlow 2.4s infinite;
+}
+
+@keyframes pulseGlow {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.payment-option-radio {
+  margin-top: 3px;
+}
+
+.custom-radio {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid #C492A2;
+  background: #FFF;
+  position: relative;
+  transition: var(--transition-fast);
+}
+
+.payment-option-card.active .custom-radio {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+}
+
+.payment-option-card.active .custom-radio::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #FFF;
+}
+
+.payment-option-content {
+  flex-grow: 1;
+}
+
+.payment-option-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.payment-option-icon {
+  font-size: 1.15rem;
+}
+
+.payment-option-name {
+  font-size: 1rem;
+  color: var(--text-dark);
+}
+
+.payment-option-desc {
+  font-size: 0.83rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+  margin-bottom: 6px;
+}
+
+.payment-option-desc strong {
+  color: #B5174E;
+}
+
+.payment-apps-mini {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.app-tag {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #4A2E35;
+  background: #FFE8F0;
+  border: 1px solid #FFCCD9;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+/* Pricing Breakdown */
+.checkout-price-box {
+  background: var(--bg-soft-pink);
+  border: 1.5px solid var(--border-pink);
+  border-radius: var(--radius-md);
+  padding: 16px 18px;
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.checkout-price-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.88rem;
+  color: var(--text-muted);
+}
+
+.checkout-price-row.upi-discount-row {
+  background: #E8F5E9;
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid #C8E6C9;
+}
+
+.discount-label {
+  color: #1B5E20;
+  font-weight: 700;
+}
+
+.discount-val {
+  color: #1B5E20;
+  font-weight: 800;
+  font-family: 'Fredoka', sans-serif;
+  font-size: 0.95rem;
+}
+
+.checkout-total-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 10px;
+  border-top: 1px dashed var(--border-pink);
+  margin-top: 4px;
+}
+
+.savings-note {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #B5174E;
+  margin-top: 2px;
+}
+
+/* ==========================================================================
+   RAZORPAY EMBEDDED UPI QR SCREEN
+   ========================================================================== */
+.razorpay-qr-container {
+  text-align: center;
+  padding: 10px 4px;
+}
+
+.razorpay-brand-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 12px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid #EAEAEA;
+}
+
+.razorpay-logo-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #0C2340;
+}
+
+.razorpay-logo-svg {
+  height: 22px;
+  vertical-align: middle;
+}
+
+.razorpay-secure-badge {
+  font-size: 0.75rem;
+  color: #0F5132;
+  background: #D1E7DD;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  font-weight: 700;
+}
+
+.razorpay-amount-box {
+  background: #F8FAFC;
+  border: 1.5px solid #E2E8F0;
+  border-radius: var(--radius-md);
+  padding: 14px;
+  margin-bottom: 18px;
+}
+
+.razorpay-amount-title {
+  font-size: 0.82rem;
+  color: #64748B;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 700;
+}
+
+.razorpay-amount-num {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #0C2340;
+  font-family: 'Fredoka', sans-serif;
+  margin: 4px 0;
+}
+
+.razorpay-discount-pill {
+  display: inline-block;
+  background: #ECFDF5;
+  color: #047857;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  border: 1px solid #A7F3D0;
+}
+
+.razorpay-qr-frame {
+  display: inline-block;
+  background: #FFF;
+  padding: 14px;
+  border-radius: var(--radius-lg);
+  border: 2.5px solid #0C2340;
+  box-shadow: 0 6px 20px rgba(12, 35, 64, 0.12);
+  margin-bottom: 14px;
+  position: relative;
+}
+
+.razorpay-qr-img {
+  width: 210px;
+  height: 210px;
+  display: block;
+  border-radius: 8px;
+}
+
+.razorpay-qr-center-logo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #FFF;
+  border: 2px solid #0C2340;
+  border-radius: 6px;
+  padding: 3px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+.razorpay-scan-instruction {
+  font-size: 0.88rem;
+  color: #334155;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
+.razorpay-apps-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.razorpay-app-pill {
+  background: #FFF;
+  border: 1px solid #CBD5E1;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #1E293B;
+}
+
+.razorpay-timer-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: #B45309;
+  background: #FEF3C7;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  margin-bottom: 18px;
+  font-weight: 600;
+}
+
+.live-pulse-dot {
+  width: 8px;
+  height: 8px;
+  background: #10B981;
+  border-radius: 50%;
+  display: inline-block;
+  animation: pulseDot 1.4s infinite;
+}
+
+@keyframes pulseDot {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.4); opacity: 0.5; }
+}
+
+.razorpay-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.btn-confirm-payment {
+  width: 100%;
+  padding: 13px 20px;
+  background: linear-gradient(135deg, #0C2340, #1D4ED8);
+  color: #FFF;
+  border: none;
+  border-radius: var(--radius-full);
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(29, 78, 216, 0.35);
+  transition: var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.btn-confirm-payment:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(29, 78, 216, 0.45);
+}
+
+.btn-open-razorpay-sdk {
+  width: 100%;
+  padding: 10px 18px;
+  background: #FFF;
+  color: #0C2340;
+  border: 1.5px solid #0C2340;
+  border-radius: var(--radius-full);
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.btn-open-razorpay-sdk:hover {
+  background: #F1F5F9;
+}
+
+.btn-razorpay-back {
+  background: none;
+  border: none;
+  color: #64748B;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 4px;
+  text-decoration: underline;
 }
