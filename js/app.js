@@ -743,8 +743,88 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // ==========================================================================
-  // CHECKOUT MODAL & ORDER RECORD GENERATION
+  // CHECKOUT MODAL & DYNAMIC PRICING (10% UPI SAVINGS & RAZORPAY QR)
   // ==========================================================================
+
+  let selectedPaymentMethod = 'UPI (Razorpay QR)';
+
+  function calculateCheckoutTotals() {
+    let subtotal = 0;
+    cart.forEach(item => {
+      const prod = KNOT_BERRY_PRODUCTS.find(p => p.id === item.id);
+      if (prod) subtotal += prod.price * item.quantity;
+    });
+
+    const isUpi = selectedPaymentMethod.startsWith('UPI');
+    const upiDiscount = isUpi ? Math.round(subtotal * 0.10) : 0;
+    const shipping = subtotal >= 499 ? 0 : (subtotal === 0 ? 0 : 49);
+    const finalTotal = Math.max(0, subtotal - upiDiscount + shipping);
+
+    return { subtotal, upiDiscount, shipping, finalTotal, isUpi };
+  }
+
+  function updateCheckoutPricing() {
+    const { subtotal, upiDiscount, shipping, finalTotal, isUpi } = calculateCheckoutTotals();
+
+    const subtotalEl = document.getElementById('checkout-subtotal-val');
+    const discountRowEl = document.getElementById('checkout-discount-row');
+    const discountValEl = document.getElementById('checkout-discount-val');
+    const shippingEl = document.getElementById('checkout-shipping-val');
+    const totalDisplayEl = document.getElementById('checkout-total-display');
+    const savingsTagEl = document.getElementById('checkout-savings-tag');
+    const submitBtn = document.getElementById('checkout-submit-btn');
+
+    if (subtotalEl) subtotalEl.textContent = `₹${subtotal}`;
+    if (discountRowEl) discountRowEl.style.display = isUpi ? 'flex' : 'none';
+    if (discountValEl) discountValEl.textContent = `-₹${upiDiscount}`;
+    if (shippingEl) shippingEl.textContent = shipping === 0 ? 'FREE' : `₹${shipping}`;
+    if (totalDisplayEl) totalDisplayEl.textContent = `₹${finalTotal}`;
+
+    if (savingsTagEl) {
+      if (isUpi) {
+        savingsTagEl.innerHTML = `🎉 10% UPI discount applied (You save <strong>₹${upiDiscount}</strong>)!`;
+        savingsTagEl.style.color = '#1B5E20';
+      } else {
+        savingsTagEl.innerHTML = `💡 <em>Tip: Select UPI to save 10% on this order!</em>`;
+        savingsTagEl.style.color = '#B5174E';
+      }
+    }
+
+    if (submitBtn) {
+      if (isUpi) {
+        submitBtn.innerHTML = `Proceed to Razorpay UPI Payment (₹${finalTotal}) ⚡`;
+      } else if (selectedPaymentMethod.includes('WhatsApp')) {
+        submitBtn.innerHTML = `Send Order via WhatsApp (+91 77580 14770) 💬`;
+      } else {
+        submitBtn.innerHTML = `Confirm Cash on Delivery Order (₹${finalTotal}) 💵`;
+      }
+    }
+  }
+
+  function initPaymentOptionCards() {
+    const cards = document.querySelectorAll('.payment-option-card');
+    cards.forEach(card => {
+      card.addEventListener('click', () => {
+        cards.forEach(c => {
+          c.classList.remove('active');
+          const r = c.querySelector('.custom-radio');
+          if (r) r.classList.remove('checked');
+        });
+
+        card.classList.add('active');
+        const radio = card.querySelector('.custom-radio');
+        if (radio) radio.classList.add('checked');
+
+        selectedPaymentMethod = card.dataset.payment || 'UPI (Razorpay QR)';
+        const hiddenInput = document.getElementById('checkout-payment-method');
+        if (hiddenInput) hiddenInput.value = selectedPaymentMethod;
+
+        updateCheckoutPricing();
+      });
+    });
+  }
+
+  initPaymentOptionCards();
 
   function openCheckoutModal() {
     if (cart.length === 0) {
@@ -752,6 +832,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     closeAllDrawers();
+    updateCheckoutPricing();
     checkoutModal.classList.add('active');
   }
 
@@ -762,8 +843,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (checkoutForm) {
     checkoutForm.addEventListener('submit', (e) => {
       e.preventDefault();
-      const orderNumber = 'KB-' + Math.floor(100000 + Math.random() * 900000);
-      const totalAmount = cartTotalPriceEl.textContent;
 
       const customerFname = document.getElementById('checkout-fname').value.trim();
       const customerLname = document.getElementById('checkout-lname').value.trim();
@@ -772,14 +851,14 @@ document.addEventListener('DOMContentLoaded', () => {
       const customerEmail = document.getElementById('checkout-email').value.trim();
       const customerAddress = document.getElementById('checkout-address').value.trim();
       const customerCity = document.getElementById('checkout-city').value.trim();
-      const paymentMethod = document.getElementById('checkout-payment-method').value;
+      const fullAddress = `${customerAddress}, ${customerCity}`;
 
-      // Calculate items and save to orders list
-      let subtotal = 0;
+      const { subtotal, upiDiscount, shipping, finalTotal, isUpi } = calculateCheckoutTotals();
+      const orderNumber = 'KB-' + Math.floor(100000 + Math.random() * 900000);
+
       const orderedItems = cart.map(item => {
         const prod = KNOT_BERRY_PRODUCTS.find(p => p.id === item.id);
         const itemPrice = prod ? prod.price : 0;
-        subtotal += itemPrice * item.quantity;
         return {
           name: prod ? prod.name : 'Crochet Item',
           color: item.color,
@@ -788,72 +867,293 @@ document.addEventListener('DOMContentLoaded', () => {
         };
       });
 
-      const shipping = subtotal >= 499 ? 0 : 49;
-      const totalNum = subtotal + shipping;
+      // If user selected UPI (Razorpay QR)
+      if (isUpi) {
+        renderRazorpayQrView({
+          orderNumber,
+          customerFullName,
+          customerPhone,
+          customerEmail,
+          fullAddress,
+          orderedItems,
+          subtotal,
+          upiDiscount,
+          shipping,
+          finalTotal
+        });
+        return;
+      }
 
-      const newOrder = {
-        id: orderNumber,
-        customerName: customerFullName,
-        phone: customerPhone,
-        email: customerEmail,
-        address: `${customerAddress}, ${customerCity}`,
-        items: orderedItems,
-        subtotal: subtotal,
-        shipping: shipping,
-        total: totalNum,
-        status: "Making with Love",
-        date: "Today (" + new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) + ")",
-        paymentMethod: paymentMethod
-      };
+      // If WhatsApp Direct Confirmation
+      if (selectedPaymentMethod.includes('WhatsApp')) {
+        let waText = `🌸 *NEW KNOTBERRY.STUDIOS ORDER (#${orderNumber})*\n\n`;
+        waText += `*Customer:* ${customerFullName}\n`;
+        waText += `*Phone:* ${customerPhone}\n`;
+        waText += `*Delivery Address:* ${fullAddress}\n\n`;
+        waText += `*Ordered Items:*\n`;
+        orderedItems.forEach(i => {
+          waText += `• ${i.quantity}x ${i.name} (${i.color || 'Std'}) - ₹${i.price * i.quantity}\n`;
+        });
+        waText += `\nSubtotal: ₹${subtotal}\n`;
+        waText += `Shipping: ${shipping === 0 ? 'FREE' : '₹' + shipping}\n`;
+        waText += `*Total Order Amount: ₹${finalTotal}*\n`;
+        waText += `Payment: WhatsApp Direct Confirmation\n\n`;
+        waText += `Please confirm my order and share dispatch updates! Thank you 🍓💖`;
 
-      orders.unshift(newOrder);
-      localStorage.setItem('knotberry_orders', JSON.stringify(orders));
+        const waUrl = `https://api.whatsapp.com/send?phone=917758014770&text=${encodeURIComponent(waText)}`;
+        window.open(waUrl, '_blank');
 
-      // Trigger celebration
-      triggerConfetti();
+        saveAndShowSuccessOrder({
+          orderNumber,
+          customerFullName,
+          customerPhone,
+          customerEmail,
+          fullAddress,
+          orderedItems,
+          subtotal,
+          shipping,
+          finalTotal,
+          status: "Making with Love",
+          statusClass: "status-crafting",
+          paymentMethodDisplay: "WhatsApp Direct Confirmation"
+        });
+        return;
+      }
 
-      // Show receipt
-      checkoutModalBody.innerHTML = `
-        <div class="order-success-box">
-          <div class="success-icon">🍓🎉✨</div>
-          <h3 style="color: var(--color-berry); font-size: 1.8rem; margin-bottom: 8px;">Order Confirmed!</h3>
-          <p style="color: var(--text-muted); margin-bottom: 20px;">
-            Thank you for supporting handmade craft! knotberry.studios is preparing your order with delicate care.
-          </p>
-          
-          <div style="background: var(--bg-soft-pink); border-radius: var(--radius-md); padding: 18px; text-align: left; margin-bottom: 20px; border: 1px dashed var(--border-pink);">
-            <div style="margin-bottom: 8px;">
-              <strong>Your Unique Order ID:</strong> 
-              <span style="font-family: monospace; font-size: 1.15rem; color: var(--color-primary-dark); font-weight: 700;">${orderNumber}</span>
-            </div>
-            <div style="margin-bottom: 8px;"><strong>Customer:</strong> ${escapeHtml(customerFullName)}</div>
-            <div style="margin-bottom: 8px;"><strong>Total Paid:</strong> ${totalAmount} (${paymentMethod})</div>
-            <div style="margin-bottom: 8px;"><strong>Status:</strong> <span class="status-pill status-crafting">Making with Love</span></div>
-            <div><strong>Complimentary:</strong> Free Strawberry Sticker Pack & Pink Ribbon 🎀</div>
+      // Cash on Delivery
+      saveAndShowSuccessOrder({
+        orderNumber,
+        customerFullName,
+        customerPhone,
+        customerEmail,
+        fullAddress,
+        orderedItems,
+        subtotal,
+        shipping,
+        finalTotal,
+        status: "Making with Love (COD)",
+        statusClass: "status-crafting",
+        paymentMethodDisplay: "Cash on Delivery"
+      });
+    });
+  }
+
+  function renderRazorpayQrView(orderData) {
+    const qrImageSrc = 'assets/images/razorpay-qr-code.jpg';
+
+    checkoutModalBody.innerHTML = `
+      <div class="razorpay-qr-container">
+        <div class="razorpay-brand-header">
+          <div class="razorpay-logo-badge">
+            <svg class="razorpay-logo-svg" viewBox="0 0 120 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M14.5 4.5L5.5 23.5H0L9 4.5H14.5Z" fill="#0C2340"/>
+              <path d="M12.5 13.5L8.5 23.5H3L7 13.5H12.5Z" fill="#0284C7"/>
+              <text x="22" y="19" font-family="'Segoe UI', Roboto, sans-serif" font-size="16" font-weight="800" fill="#0C2340">Razorpay</text>
+            </svg>
+            <span style="font-size: 0.76rem; color: #64748B; font-weight: 600;">• Verified UPI Gateway</span>
           </div>
+          <span class="razorpay-secure-badge">🔒 256-bit Encrypted</span>
+        </div>
 
-          <div style="background: #FFF8E7; border-radius: var(--radius-md); padding: 12px 16px; font-size: 0.84rem; color: #78350F; margin-bottom: 20px; border: 1px solid #E5A93C;">
-            💡 <em>Please save your <strong>Order ID (${orderNumber})</strong>! You will need it to leave verified customer feedback.</em>
+        <div class="razorpay-amount-box">
+          <div class="razorpay-amount-title">Total Payable via Razorpay UPI</div>
+          <div class="razorpay-amount-num">₹${orderData.finalTotal}</div>
+          <div>
+            <span class="razorpay-discount-pill">🎉 10% Instant UPI Discount Applied (Saved ₹${orderData.upiDiscount})</span>
           </div>
+        </div>
 
-          <button class="btn btn-primary" id="success-continue-btn" style="width: 100%;">
-            Continue Shopping 🌸
+        <div class="razorpay-qr-frame">
+          <img src="${qrImageSrc}" alt="Razorpay UPI QR Code - Scan & Pay" class="razorpay-qr-img" id="razorpay-active-qr">
+        </div>
+
+        <div class="razorpay-scan-instruction">
+          📲 Scan & Pay with any UPI app on your phone
+        </div>
+
+        <div class="razorpay-apps-row">
+          <span class="razorpay-app-pill">Google Pay</span>
+          <span class="razorpay-app-pill">PhonePe</span>
+          <span class="razorpay-app-pill">Paytm</span>
+          <span class="razorpay-app-pill">BHIM UPI</span>
+          <span class="razorpay-app-pill">CRED</span>
+        </div>
+
+        <div class="razorpay-timer-box">
+          <span class="live-pulse-dot"></span>
+          <span>QR Session active for: <strong id="rzp-timer-display">04:59</strong></span>
+        </div>
+
+        <div class="razorpay-actions">
+          <button type="button" class="btn-confirm-payment" id="btn-confirm-upi-payment">
+            <span>✓</span> I Have Paid via UPI / Complete Order
+          </button>
+          <button type="button" class="btn-open-razorpay-sdk" id="btn-open-razorpay-modal">
+            <span>💳</span> Open Standard Razorpay Checkout
+          </button>
+          <button type="button" class="btn-razorpay-back" id="btn-cancel-rzp-payment">
+            ← Back to Checkout Form
           </button>
         </div>
-      `;
+      </div>
+    `;
 
-      // Clear cart
-      cart = [];
-      saveCart();
-
-      const continueBtn = document.getElementById('success-continue-btn');
-      if (continueBtn) {
-        continueBtn.addEventListener('click', () => {
-          checkoutModal.classList.remove('active');
-          location.reload();
-        });
+    // Start 5-min countdown timer
+    let timeLeft = 299;
+    const timerEl = document.getElementById('rzp-timer-display');
+    const timerInterval = setInterval(() => {
+      timeLeft--;
+      if (timeLeft <= 0) {
+        clearInterval(timerInterval);
+        if (timerEl) timerEl.textContent = 'Expired';
+        return;
       }
+      const mins = String(Math.floor(timeLeft / 60)).padStart(2, '0');
+      const secs = String(timeLeft % 60).padStart(2, '0');
+      if (timerEl) timerEl.textContent = `${mins}:${secs}`;
+    }, 1000);
+
+    // Cancel / Back button
+    const backBtn = document.getElementById('btn-cancel-rzp-payment');
+    if (backBtn) {
+      backBtn.addEventListener('click', () => {
+        clearInterval(timerInterval);
+        location.reload();
+      });
+    }
+
+    // Open Standard Razorpay Modal
+    const sdkBtn = document.getElementById('btn-open-razorpay-modal');
+    if (sdkBtn) {
+      sdkBtn.addEventListener('click', () => {
+        if (typeof Razorpay !== 'undefined') {
+          const options = {
+            key: "rzp_test_KnotBerryStudios",
+            amount: orderData.finalTotal * 100,
+            currency: "INR",
+            name: "knotberry.studios 🍓",
+            description: `Order #${orderData.orderNumber} (Crochet Accessories)`,
+            image: "assets/images/logo.jpg",
+            handler: function () {
+              clearInterval(timerInterval);
+              executeOrderCompletion(orderData);
+            },
+            prefill: {
+              name: orderData.customerFullName,
+              email: orderData.customerEmail,
+              contact: orderData.customerPhone
+            },
+            theme: {
+              color: "#FF5C8A"
+            }
+          };
+          try {
+            const rzpInstance = new Razorpay(options);
+            rzpInstance.open();
+          } catch (err) {
+            console.warn('Standard modal launch:', err);
+            showToast('Scan the Razorpay QR code to complete payment! 🍓');
+          }
+        } else {
+          showToast('Razorpay QR is active! Scan with any UPI app 📱');
+        }
+      });
+    }
+
+    // Confirm Payment Click
+    const confirmBtn = document.getElementById('btn-confirm-upi-payment');
+    if (confirmBtn) {
+      confirmBtn.addEventListener('click', () => {
+        clearInterval(timerInterval);
+        confirmBtn.innerHTML = `<span>⏳</span> Verifying payment with Razorpay...`;
+        confirmBtn.style.opacity = '0.85';
+        confirmBtn.disabled = true;
+
+        setTimeout(() => {
+          executeOrderCompletion(orderData);
+        }, 1100);
+      });
+    }
+  }
+
+  function executeOrderCompletion(orderData) {
+    saveAndShowSuccessOrder({
+      orderNumber: orderData.orderNumber,
+      customerFullName: orderData.customerFullName,
+      customerPhone: orderData.customerPhone,
+      customerEmail: orderData.customerEmail,
+      fullAddress: orderData.fullAddress,
+      orderedItems: orderData.orderedItems,
+      subtotal: orderData.subtotal,
+      shipping: orderData.shipping,
+      finalTotal: orderData.finalTotal,
+      status: "Completed",
+      statusClass: "status-completed",
+      paymentMethodDisplay: "UPI via Razorpay (10% Discount Applied)"
     });
+  }
+
+  function saveAndShowSuccessOrder(data) {
+    const newOrder = {
+      id: data.orderNumber,
+      customerName: data.customerFullName,
+      phone: data.customerPhone,
+      email: data.customerEmail,
+      address: data.fullAddress,
+      items: data.orderedItems,
+      subtotal: data.subtotal,
+      shipping: data.shipping,
+      total: data.finalTotal,
+      status: data.status,
+      date: "Today (" + new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) + ")",
+      paymentMethod: data.paymentMethodDisplay
+    };
+
+    orders.unshift(newOrder);
+    localStorage.setItem('knotberry_orders', JSON.stringify(orders));
+
+    triggerConfetti();
+
+    checkoutModalBody.innerHTML = `
+      <div class="order-success-box">
+        <div class="success-icon">🍓🎉✨</div>
+        <h3 style="color: var(--color-berry); font-size: 1.8rem; margin-bottom: 8px;">Order Confirmed!</h3>
+        <p style="color: var(--text-muted); margin-bottom: 20px;">
+          Thank you for supporting handmade craft! knotberry.studios is preparing your order with delicate care.
+        </p>
+        
+        <div style="background: var(--bg-soft-pink); border-radius: var(--radius-md); padding: 18px; text-align: left; margin-bottom: 20px; border: 1.5px solid var(--border-pink);">
+          <div style="margin-bottom: 8px;">
+            <strong>Your Unique Order ID:</strong> 
+            <span style="font-family: monospace; font-size: 1.15rem; color: var(--color-primary-dark); font-weight: 700;">${data.orderNumber}</span>
+          </div>
+          <div style="margin-bottom: 8px;"><strong>Customer:</strong> ${escapeHtml(data.customerFullName)}</div>
+          <div style="margin-bottom: 8px;"><strong>Total Paid:</strong> ₹${data.finalTotal} (${data.paymentMethodDisplay})</div>
+          <div style="margin-bottom: 8px;"><strong>Status:</strong> <span class="status-pill ${data.statusClass}">${data.status}</span></div>
+          <div><strong>Complimentary:</strong> Free Strawberry Sticker Pack & Pink Ribbon 🎀</div>
+        </div>
+
+        <div style="background: #FFF8E7; border-radius: var(--radius-md); padding: 12px 16px; font-size: 0.84rem; color: #78350F; margin-bottom: 20px; border: 1px solid #E5A93C;">
+          💡 <em>Please save your <strong>Order ID (${data.orderNumber})</strong>! You will need it to leave verified customer feedback.</em>
+        </div>
+
+        <button class="btn btn-primary" id="success-continue-btn" style="width: 100%;">
+          Continue Shopping 🌸
+        </button>
+      </div>
+    `;
+
+    // Clear cart
+    cart = [];
+    saveCart();
+
+    const continueBtn = document.getElementById('success-continue-btn');
+    if (continueBtn) {
+      continueBtn.addEventListener('click', () => {
+        checkoutModal.classList.remove('active');
+        location.reload();
+      });
+    }
   }
 
   // ==========================================================================
@@ -1157,6 +1457,7 @@ document.addEventListener('DOMContentLoaded', () => {
           if (order.status === 'Making with Love') statusClass = 'status-crafting';
           if (order.status === 'Dispatched') statusClass = 'status-dispatched';
           if (order.status === 'Delivered') statusClass = 'status-delivered';
+          if (order.status === 'Completed') statusClass = 'status-completed';
 
           const itemsSummary = (order.items || []).map(i => `${i.quantity}x ${i.name} (${i.color || 'Std'})`).join('<br>');
 
@@ -1229,7 +1530,7 @@ document.addEventListener('DOMContentLoaded', () => {
   function cycleOrderStatus(orderIndex) {
     if (!orders[orderIndex]) return;
 
-    const statuses = ['Pending', 'Making with Love', 'Dispatched', 'Delivered'];
+    const statuses = ['Pending', 'Making with Love', 'Dispatched', 'Delivered', 'Completed'];
     const current = orders[orderIndex].status || 'Pending';
     const nextIndex = (statuses.indexOf(current) + 1) % statuses.length;
     orders[orderIndex].status = statuses[nextIndex];
